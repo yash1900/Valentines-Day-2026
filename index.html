@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ROMCOM: The Long-Distance Survival Quest</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              pastel: {
+                mint: '#bcece0',
+                lavender: '#d6cdea',
+                pink: '#f8c8dc',
+                yellow: '#fbf8cc',
+                blue: '#a2d2ff',
+                dark: '#2d3436',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['Courier New', 'monospace'],
+            },
+            animation: {
+              'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+              'float': 'float 3s ease-in-out infinite',
+            },
+            keyframes: {
+              shake: {
+                '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+              },
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10px)' },
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+      
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #d6cdea; /* Fallback */
+      }
+      
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.25);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
+
+      .mesh-bg {
+        background-color: #f8c8dc;
+        background-image: 
+          radial-gradient(at 40% 20%, #bcece0 0px, transparent 50%),
+          radial-gradient(at 80% 0%, #a2d2ff 0px, transparent 50%),
+          radial-gradient(at 0% 50%, #d6cdea 0px, transparent 50%),
+          radial-gradient(at 80% 50%, #fbf8cc 0px, transparent 50%),
+          radial-gradient(at 0% 100%, #a2d2ff 0px, transparent 50%),
+          radial-gradient(at 80% 100%, #bcece0 0px, transparent 50%),
+          radial-gradient(at 0% 0%, #f8c8dc 0px, transparent 50%);
+        background-size: 150% 150%;
+        animation: meshMove 20s ease infinite;
+      }
+
+      @keyframes meshMove {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      
+      /* NES-style pointer for buttons */
+      button {
+        cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewport="0 0 24 24" fill="black"><polygon points="0,0 12,0 12,14 18,14 18,20 12,20 12,24 6,24 6,18 0,18"/></svg>'), pointer;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
