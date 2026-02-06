@@ -9,10 +9,10 @@ interface Stage2Props {
 const SPRITE_URLS = {
     PLAYER: '/assets/romcom_avatar_pixel.png',   
     VAN: '/assets/pakdo_van_pixel.png',         
-    VODKA: '/assets/smirnoff_bottle.png',     
-    BEAR: '/assets/teddy_bear_cursor.png',       
+    CLEANING: '/assets/cleaning_icon.png',     
+    COOKING: '/assets/cooking_icon.png',       
     BIRYANI: '/assets/biryani_icon.png', 
-    COFFEE: '/assets/fish_thali_icon.png'    
+    FISH_THALI: '/assets/fish_thali_icon.png'    
 };
 
 // Game Constants
@@ -55,8 +55,8 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
   const gameState = useRef({
     player: { x: 150, y: 300, width: 40, height: 60, vy: 0, grounded: true },
     van: { x: -300, width: 160, height: 80 }, 
-    obstacles: [] as { x: number, y: number, width: number, height: number, type: 'vodka' | 'bear', hit: boolean }[],
-    powerups: [] as { x: number, y: number, width: number, height: number, type: 'biryani' | 'coffee', collected: boolean }[],
+    obstacles: [] as { x: number, y: number, width: number, height: number, type: 'cleaning' | 'cooking', hit: boolean }[],
+    powerups: [] as { x: number, y: number, width: number, height: number, type: 'biryani' | 'fishThali', collected: boolean }[],
     clouds: Array.from({ length: 6 }, (_, i) => ({
       x: i * 150,
       y: 30 + Math.random() * 80,
@@ -244,6 +244,49 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
 
   // --- DRAWING FUNCTIONS ---
 
+  const drawLabel = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number) => {
+    ctx.save();
+    ctx.font = 'bold 14px "Courier New"';
+    const metrics = ctx.measureText(text);
+    const padding = 6;
+    const bgW = metrics.width + padding * 2;
+    const bgH = 22;
+    
+    // Position centered above x, y
+    // y is usually the top of the sprite, so we move up
+    const boxX = x - bgW / 2;
+    const boxY = y - bgH - 5; // 5px gap from sprite
+    
+    // Draw Pill Background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.strokeStyle = '#2d3436';
+    ctx.lineWidth = 2;
+    
+    ctx.beginPath();
+    // Manual round rect for broad browser support
+    const r = 4;
+    ctx.moveTo(boxX + r, boxY);
+    ctx.lineTo(boxX + bgW - r, boxY);
+    ctx.quadraticCurveTo(boxX + bgW, boxY, boxX + bgW, boxY + r);
+    ctx.lineTo(boxX + bgW, boxY + bgH - r);
+    ctx.quadraticCurveTo(boxX + bgW, boxY + bgH, boxX + bgW - r, boxY + bgH);
+    ctx.lineTo(boxX + r, boxY + bgH);
+    ctx.quadraticCurveTo(boxX, boxY + bgH, boxX, boxY + bgH - r);
+    ctx.lineTo(boxX, boxY + r);
+    ctx.quadraticCurveTo(boxX, boxY, boxX + r, boxY);
+    ctx.closePath();
+    
+    ctx.fill();
+    ctx.stroke();
+    
+    // Draw Text
+    ctx.fillStyle = '#2d3436';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, boxY + bgH/2 + 1); // +1 for optical centering
+    ctx.restore();
+  };
+
   const drawPlayer = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, frame: number, grounded: boolean) => {
       // SPRITE RENDER
       const img = spritesRef.current.PLAYER;
@@ -359,8 +402,8 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
       
       ctx.font = '16px Courier New';
       ctx.fillText("Press SPACE to Jump", GAME_WIDTH/2, GAME_HEIGHT/2);
-      ctx.fillText("Collect Biryani/Coffee to Speed Up", GAME_WIDTH/2, GAME_HEIGHT/2 + 25);
-      ctx.fillText("Avoid Bears/Vodka or kidnappers will catch you!", GAME_WIDTH/2, GAME_HEIGHT/2 + 50);
+      ctx.fillText("Collect Biryani/Fish Thali to Speed Up", GAME_WIDTH/2, GAME_HEIGHT/2 + 25);
+      ctx.fillText("Avoid Cooking/Cleaning or kidnappers will catch you!", GAME_WIDTH/2, GAME_HEIGHT/2 + 50);
       
       ctx.fillStyle = '#f1c40f';
       ctx.font = 'bold 20px Courier New';
@@ -368,6 +411,9 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
   };
 
   const drawBiryani = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+    // Label
+    drawLabel(ctx, "BIRYANI", x + 20, y);
+
     // SPRITE RENDER
     const img = spritesRef.current.BIRYANI;
     if (img && img.complete && img.naturalWidth !== 0) {
@@ -398,85 +444,134 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
     ctx.stroke();
   };
 
-  const drawCoffee = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+  const drawFishThali = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+    // Label
+    drawLabel(ctx, "FISH THALI", x + 20, y);
+
     // SPRITE RENDER
-    const img = spritesRef.current.COFFEE;
+    const img = spritesRef.current.FISH_THALI;
     if (img && img.complete && img.naturalWidth !== 0) {
         ctx.drawImage(img, x, y, 40, 40);
         return;
     }
 
-    // FALLBACK
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillRect(x + 10, y + 20, 20, 20);
-    ctx.strokeStyle = '#fff';
-    ctx.strokeRect(x + 10, y + 20, 20, 20);
-    ctx.fillStyle = '#fceabb'; 
-    ctx.fillRect(x + 11, y + 32, 18, 7);
-    ctx.fillStyle = '#3e2723';
-    ctx.fillRect(x + 11, y + 25, 18, 7);
-    ctx.fillStyle = '#bdc3c7';
-    ctx.fillRect(x + 5, y, 30, 20);
-    ctx.fillRect(x + 2, y + 20, 36, 2);
+    // FALLBACK (Plate with Fish)
+    // Plate
+    ctx.fillStyle = '#ecf0f1';
+    ctx.beginPath();
+    ctx.arc(x + 20, y + 20, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#bdc3c7';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Fish
+    ctx.fillStyle = '#e67e22'; // Cooked orange
+    ctx.beginPath();
+    ctx.ellipse(x + 20, y + 20, 12, 6, Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eye
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x + 26, y + 15, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Small Katoris (bowls)
+    ctx.fillStyle = '#f1c40f'; // Dal
+    ctx.beginPath();
+    ctx.arc(x + 10, y + 10, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#27ae60'; // Sabzi
+    ctx.beginPath();
+    ctx.arc(x + 30, y + 30, 4, 0, Math.PI * 2);
+    ctx.fill();
   };
 
-  const drawVodka = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+  const drawCleaning = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+    // Label
+    drawLabel(ctx, "CLEANING", x + w/2, y);
+
     // SPRITE RENDER
-    const img = spritesRef.current.VODKA;
+    const img = spritesRef.current.CLEANING;
     if (img && img.complete && img.naturalWidth !== 0) {
         ctx.drawImage(img, x, y, w, h);
         return;
     }
 
-    // FALLBACK
-    const bottleW = w * 0.6;
-    const bottleX = x + (w - bottleW) / 2;
-    ctx.fillStyle = 'rgba(200, 230, 255, 0.5)';
-    ctx.fillRect(bottleX, y + h * 0.3, bottleW, h * 0.7);
-    ctx.fillRect(bottleX + bottleW * 0.25, y, bottleW * 0.5, h * 0.3);
-    ctx.fillStyle = '#bdc3c7';
-    ctx.fillRect(bottleX + bottleW * 0.25, y, bottleW * 0.5, h * 0.1);
-    ctx.fillStyle = '#c0392b';
-    ctx.fillRect(bottleX, y + h * 0.45, bottleW, h * 0.25);
-    ctx.fillStyle = 'white';
-    ctx.fillRect(bottleX + 2, y + h * 0.5, bottleW - 4, 2);
+    // FALLBACK (Broom)
+    const centerX = x + w / 2;
+    
+    // Handle
+    ctx.fillStyle = '#8d6e63'; // Wood
+    ctx.fillRect(centerX - 3, y, 6, h * 0.6);
+    
+    // Bristles Holder
+    ctx.fillStyle = '#5d4037';
+    ctx.fillRect(centerX - 10, y + h * 0.6, 20, 5);
+
+    // Bristles
+    ctx.fillStyle = '#f1c40f'; // Straw
+    ctx.beginPath();
+    ctx.moveTo(centerX - 10, y + h * 0.6 + 5);
+    ctx.lineTo(centerX + 10, y + h * 0.6 + 5);
+    ctx.lineTo(centerX + 15, y + h);
+    ctx.lineTo(centerX - 15, y + h);
+    ctx.fill();
+    
+    // Bristle lines
+    ctx.strokeStyle = '#d4ac0d';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(centerX, y + h * 0.6 + 5);
+    ctx.lineTo(centerX, y + h);
+    ctx.moveTo(centerX - 5, y + h * 0.6 + 5);
+    ctx.lineTo(centerX - 7, y + h);
+    ctx.moveTo(centerX + 5, y + h * 0.6 + 5);
+    ctx.lineTo(centerX + 7, y + h);
+    ctx.stroke();
   };
 
-  const drawBear = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+  const drawCooking = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+    // Label
+    drawLabel(ctx, "COOKING", x + w/2, y);
+
     // SPRITE RENDER
-    const img = spritesRef.current.BEAR;
+    const img = spritesRef.current.COOKING;
     if (img && img.complete && img.naturalWidth !== 0) {
         ctx.drawImage(img, x, y, w, h);
         return;
     }
 
-    // FALLBACK
-    ctx.fillStyle = '#795548';
+    // FALLBACK (Pot on Stove)
+    const potY = y + h * 0.4;
+    const potH = h * 0.5;
+    
+    // Pot
+    ctx.fillStyle = '#7f8c8d'; // Metal
+    ctx.fillRect(x + 5, potY, w - 10, potH);
+    ctx.strokeRect(x + 5, potY, w - 10, potH);
+    
+    // Handles
+    ctx.fillStyle = '#2c3e50';
+    ctx.fillRect(x, potY + 5, 5, 10);
+    ctx.fillRect(x + w - 5, potY + 5, 5, 10);
+    
+    // Lid
+    ctx.fillStyle = '#95a5a6';
     ctx.beginPath();
-    ctx.arc(x + w*0.2, y + h*0.2, w*0.15, 0, Math.PI*2);
-    ctx.arc(x + w*0.8, y + h*0.2, w*0.15, 0, Math.PI*2);
+    ctx.ellipse(x + w/2, potY, w/2 - 5, 5, 0, Math.PI, 0); // Top curve
     ctx.fill();
-    ctx.fillRect(x + w*0.1, y + h*0.2, w*0.8, h*0.7);
-    ctx.fillStyle = '#d7ccc8';
-    ctx.fillRect(x + w*0.3, y + h*0.5, w*0.4, h*0.3);
-    ctx.fillStyle = '#3e2723';
-    ctx.fillRect(x + w*0.45, y + h*0.55, w*0.1, h*0.1);
-    ctx.fillStyle = 'white';
-    ctx.fillRect(x + w*0.25, y + h*0.35, w*0.1, h*0.1);
-    ctx.fillRect(x + w*0.65, y + h*0.35, w*0.1, h*0.1);
-    ctx.fillStyle = 'black';
-    ctx.fillRect(x + w*0.28, y + h*0.38, w*0.05, h*0.05);
-    ctx.fillRect(x + w*0.68, y + h*0.38, w*0.05, h*0.05);
-    ctx.fillStyle = '#e74c3c';
+    ctx.stroke();
+    // Lid Knob
+    ctx.fillStyle = '#2c3e50';
+    ctx.fillRect(x + w/2 - 3, potY - 8, 6, 8);
+
+    // Steam bubbles
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.beginPath();
-    ctx.moveTo(x + w*0.5, y + h*0.9);
-    ctx.lineTo(x + w*0.3, y + h);
-    ctx.lineTo(x + w*0.3, y + h*0.8);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(x + w*0.5, y + h*0.9);
-    ctx.lineTo(x + w*0.7, y + h);
-    ctx.lineTo(x + w*0.7, y + h*0.8);
+    ctx.arc(x + w/2 - 5, y + h * 0.2, 3, 0, Math.PI*2);
+    ctx.arc(x + w/2 + 5, y + h * 0.1, 4, 0, Math.PI*2);
     ctx.fill();
   };
 
@@ -711,7 +806,7 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
               y: GAME_HEIGHT - 50 - 60,
               width: 40,
               height: 60,
-              type: Math.random() > 0.5 ? 'vodka' : 'bear',
+              type: Math.random() > 0.5 ? 'cleaning' : 'cooking',
               hit: false
             });
           } else {
@@ -720,7 +815,7 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
                 y: GAME_HEIGHT - 150 - (Math.random() * 120),
                 width: 40,
                 height: 40,
-                type: Math.random() > 0.5 ? 'biryani' : 'coffee',
+                type: Math.random() > 0.5 ? 'biryani' : 'fishThali',
                 collected: false
              });
           }
@@ -854,13 +949,13 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
     }
 
     state.obstacles.forEach(obs => {
-        if (obs.type === 'vodka') drawVodka(ctx, obs.x, obs.y, obs.width, obs.height);
-        else drawBear(ctx, obs.x, obs.y, obs.width, obs.height);
+        if (obs.type === 'cleaning') drawCleaning(ctx, obs.x, obs.y, obs.width, obs.height);
+        else drawCooking(ctx, obs.x, obs.y, obs.width, obs.height);
     });
 
     state.powerups.forEach(pup => {
         if (pup.type === 'biryani') drawBiryani(ctx, pup.x, pup.y);
-        else drawCoffee(ctx, pup.x, pup.y);
+        else drawFishThali(ctx, pup.x, pup.y);
     });
 
     // HUD
