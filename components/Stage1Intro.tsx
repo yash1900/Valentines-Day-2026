@@ -8,7 +8,7 @@ interface Stage1Props {
 export const Stage1Intro: React.FC<Stage1Props> = ({ onComplete }) => {
   const [clickCount, setClickCount] = useState(0);
   const [shaking, setShaking] = useState(false);
-  const [text, setText] = useState("MISSION BRIEF: You are trapped at a boring family function. The 'Rishta Aunties' have spotted you.");
+  const [text, setText] = useState("Meine ispe try karna chodh diya hai. Ye hints hi nhi leti.");
 
   const handleClick = () => {
     const newCount = clickCount + 1;
@@ -19,11 +19,11 @@ export const Stage1Intro: React.FC<Stage1Props> = ({ onComplete }) => {
     playBeep(200 + newCount * 100, 'square', 0.1);
 
     if (newCount === 1) {
-      setText("They are approaching with photos of 'Good Boys' from LinkedIn. Panic levels rising.");
+      setText("Nhi mujhe dosti bhi nhi chahiye teri. Mere bohot dost hain.");
     } else if (newCount === 2) {
-      setText("The Black Van is pulling up outside. They want to take you to a 'Meet & Greet'.");
+      setText("Toh kyu aake baithti hai mere paas class mein!!??");
     } else if (newCount >= 3) {
-      setText("ESCAPE VEHICLE READY! RUN FOR YOUR LIFE!");
+      setText("SHADY BLACK VAN BEHIND YOU! RUN FOR YOUR LIFE!");
       setTimeout(onComplete, 1500);
     }
 
@@ -56,7 +56,7 @@ export const Stage1Intro: React.FC<Stage1Props> = ({ onComplete }) => {
     <div className={`flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto p-4 transition-transform duration-100 ${shaking ? 'animate-shake' : ''}`}>
       <GlassCard className="text-center relative overflow-hidden border-4 border-pastel-dark">
         <h1 className="text-4xl font-black text-pastel-dark mb-6 font-mono tracking-tighter uppercase">
-          Objective: Survive
+          SHOBIT KA BIRTHDAY
         </h1>
         
         <div className="mb-8 min-h-[80px] flex items-center justify-center">
@@ -71,12 +71,12 @@ export const Stage1Intro: React.FC<Stage1Props> = ({ onComplete }) => {
             disabled={clickCount >= 3}
             className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-gray-900 font-mono focus:outline-none border-2 border-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {clickCount < 3 ? '🍸 DOWN THE VODKA' : '🏃‍♀️ START RUNNING!'}
+            {clickCount < 3 ? '🍸 DOWN THE SMIRNOFF' : '🏃‍♀️ KIDNAPPER ALERT!'}
           </button>
         </div>
 
         <div className="mt-8 text-xs font-mono text-gray-500 uppercase tracking-widest">
-          Courage Meter: {clickCount}/3
+          Tipsy Meter: {clickCount}/3
         </div>
       </GlassCard>
 

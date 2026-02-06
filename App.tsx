@@ -94,7 +94,7 @@ const App: React.FC = () => {
       </main>
       
       <footer className="absolute bottom-2 w-full text-center text-xs text-gray-500 font-mono opacity-50 z-0">
-        ROMCOM v1.0 • Built with Love & Anxiety
+        SANCHI: Why dont you love me?
       </footer>
     </div>
   );

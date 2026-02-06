@@ -27,76 +27,68 @@ export const Stage3Proposal: React.FC<Stage3Props> = ({ onYes }) => {
     const mouseX = e.clientX;
     const mouseY = e.clientY;
 
-    const threshold = 200; // Increased radius
+    // Interaction Radius
+    const threshold = 150; 
     const dist = Math.hypot(mouseX - btnCenterX, mouseY - btnCenterY);
 
     if (dist < threshold) {
         setHoverCount(prev => prev + 1);
         
-        // 1. Calculate base angle away from mouse
-        const deltaX = btnCenterX - mouseX;
-        const deltaY = btnCenterY - mouseY;
-        let angle = Math.atan2(deltaY, deltaX);
+        // Calculate repulsion vector (Away from mouse)
+        const dx = mouseX - btnCenterX;
+        const dy = mouseY - btnCenterY;
         
-        // 2. Add organic jitter (Random variance +/- 45 degrees)
-        // This makes it feel like it's "panicking" rather than just mathematically repelling
-        const jitter = (Math.random() - 0.5) * (Math.PI / 2); 
-        angle += jitter;
+        // Normalize
+        const rawDist = Math.max(dist, 1); // Avoid div by zero
+        const dirX = dx / rawDist;
+        const dirY = dy / rawDist;
 
-        // 3. Dynamic force based on how close the mouse is
-        // Closer mouse = bigger jump
-        const proximityFactor = Math.pow((threshold - dist) / threshold, 2); // Exponential curve
-        const force = 40 + (proximityFactor * 120); 
+        // Force strength (0 to 1, higher when closer)
+        const force = Math.pow((threshold - dist) / threshold, 2); 
         
-        let moveX = Math.cos(angle) * force;
-        let moveY = Math.sin(angle) * force;
-
-        // 4. Edge Avoidance & "Bounce" Logic
-        const padding = 100; // Keep it further from edges
-        const winW = window.innerWidth;
-        const winH = window.innerHeight;
+        // Movement amount per frame (tuned for responsiveness without teleporting)
+        const speed = 40 * force; 
         
-        // Where would it end up?
-        const nextLeft = rect.left + moveX;
-        const nextRight = rect.right + moveX;
-        const nextTop = rect.top + moveY;
-        const nextBottom = rect.bottom + moveY;
+        let moveX = -dirX * speed;
+        let moveY = -dirY * speed;
 
-        // If hitting an edge, reverse that component strongly and add random scatter
-        if (nextLeft < padding) {
-             moveX = Math.abs(moveX) + 40; 
-        } else if (nextRight > winW - padding) {
-             moveX = -Math.abs(moveX) - 40;
+        // Apply to current position
+        let nextX = noBtnPos.x + moveX;
+        let nextY = noBtnPos.y + moveY;
+
+        // --- CONSTRAINTS ---
+        // Prevents button from leaving the visible area or getting stuck
+        
+        const MAX_X = 280;     // Side boundaries
+        const MAX_UP = 300;    // Can go high up
+        const MAX_DOWN = 20;   // STRICT LIMIT downwards to prevent overflow
+
+        // 1. Clamp Y (Floor is lava)
+        if (nextY > MAX_DOWN) {
+            nextY = MAX_DOWN;
+            // If trapped against floor, convert vertical force to horizontal slide
+            // If mouse is above (dy < 0 relative to button? No, dy = mouseY - btnY. Mouse above means dy < 0)
+            if (dy < 0) { 
+                // Mouse is above, pushing down. Slide sideways.
+                // Move in the direction of the mouse's horizontal offset to "escape" around it?
+                // No, move AWAY from mouse X.
+                nextX += (dx > 0 ? -15 : 15);
+            }
+        }
+        if (nextY < -MAX_UP) nextY = -MAX_UP;
+
+        // 2. Clamp X (Walls)
+        if (nextX > MAX_X) {
+            nextX = MAX_X;
+            // Wall slide logic
+            if (dx < 0) nextY += (dy > 0 ? -15 : 15);
+        }
+        if (nextX < -MAX_X) {
+            nextX = -MAX_X;
+             if (dx > 0) nextY += (dy > 0 ? -15 : 15);
         }
 
-        if (nextTop < padding) {
-             moveY = Math.abs(moveY) + 40;
-        } else if (nextBottom > winH - padding) {
-             moveY = -Math.abs(moveY) - 40;
-        }
-
-        // 5. Center Gravity (Soft leash)
-        // If it gets too far into corners, gently pull it back towards center
-        const centerX = winW / 2;
-        const centerY = winH / 2;
-        const distToCenter = Math.hypot(centerX - btnCenterX, centerY - btnCenterY);
-        
-        if (distToCenter > Math.min(winW, winH) * 0.4) {
-            const angleToCenter = Math.atan2(centerY - btnCenterY, centerX - btnCenterX);
-            // Stronger pull back if very far
-            const pullStrength = (distToCenter / (Math.min(winW, winH) * 0.4)) * 15;
-            moveX += Math.cos(angleToCenter) * pullStrength;
-            moveY += Math.sin(angleToCenter) * pullStrength;
-        }
-
-        // 6. Micro-movements (nervous shaking)
-        moveX += (Math.random() - 0.5) * 10;
-        moveY += (Math.random() - 0.5) * 10;
-
-        setNoBtnPos(prev => ({
-            x: prev.x + moveX,
-            y: prev.y + moveY
-        }));
+        setNoBtnPos({ x: nextX, y: nextY });
     }
   };
 
@@ -116,7 +108,7 @@ export const Stage3Proposal: React.FC<Stage3Props> = ({ onYes }) => {
   return (
     <div 
         onMouseMove={handleMouseMove}
-        className="relative w-full h-full flex items-center justify-center p-4 overflow-hidden"
+        className="relative w-full h-full flex items-center justify-center p-4"
     >
       <style>{`
         @keyframes fadeIn {
@@ -155,20 +147,21 @@ export const Stage3Proposal: React.FC<Stage3Props> = ({ onYes }) => {
           </div>
       )}
 
-      <GlassCard className={`max-w-2xl w-full text-center relative z-10 !p-0 overflow-hidden border-0 shadow-2xl transition-all duration-700 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+      {/* Changed overflow-hidden to overflow-visible so the button doesn't get clipped */}
+      <GlassCard className={`max-w-2xl w-full text-center relative z-10 !p-0 overflow-visible border-0 shadow-2xl transition-all duration-700 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
         {/* Header Section */}
-        <div className="bg-pastel-lavender p-6 border-b-4 border-white/50 relative overflow-hidden animate-fade-in">
+        <div className="bg-pastel-lavender p-6 border-b-4 border-white/50 relative overflow-hidden animate-fade-in rounded-t-lg">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-pastel-pink via-pastel-blue to-pastel-mint"></div>
             <h2 className="text-xl font-mono font-bold text-gray-500 tracking-widest uppercase mb-2">
-                Mission Report: Final Stage
+                THE KISS HYPNOTISED SITCOM
             </h2>
             <div className="inline-block px-4 py-1 bg-white/50 rounded-full border border-white">
-                <span className="text-sm font-bold text-pastel-dark">STATUS: PENDING DECISION</span>
+                <span className="text-sm font-bold text-pastel-dark">DROPPED THE QUESTION</span>
             </div>
         </div>
 
         {/* Main Content */}
-        <div className="p-8 md:p-12 bg-white/40 backdrop-blur-sm relative">
+        <div className="p-8 md:p-12 bg-white/40 backdrop-blur-sm relative rounded-b-lg">
             {/* Decorative Hearts Background */}
             <div className="absolute top-10 left-10 text-4xl animate-float opacity-20" style={{ animationDuration: '4s' }}>💘</div>
             <div className="absolute bottom-20 right-10 text-5xl animate-pulse opacity-20">💌</div>
@@ -184,7 +177,7 @@ export const Stage3Proposal: React.FC<Stage3Props> = ({ onYes }) => {
             <div className="my-8 animate-fade-in delay-200">
                 <div className="inline-block relative">
                      <span className="text-2xl md:text-3xl font-bold font-mono bg-pastel-yellow px-4 py-2 transform -rotate-2 shadow-sm block border-2 border-pastel-dark text-pastel-dark">
-                        Agent ROMCOM
+                        CUTUUUUU
                     </span>
                     <span className="absolute -top-3 -right-3 text-3xl animate-bob">🎀</span>
                 </div>
@@ -195,7 +188,7 @@ export const Stage3Proposal: React.FC<Stage3Props> = ({ onYes }) => {
                   "4 years in and you're still the funniest, smartest, and most beautiful person I know. Let's make it official (again)."
                 </p>
                 <div className="mt-2 text-right">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">— Classified Intel</span>
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">— Your Decision</span>
                 </div>
             </div>
 
@@ -207,7 +200,7 @@ export const Stage3Proposal: React.FC<Stage3Props> = ({ onYes }) => {
                     disabled={isTransitioning}
                     className="group relative px-10 py-5 text-xl font-black text-white bg-gray-900 border-4 border-transparent hover:border-pastel-pink rounded-xl shadow-[8px_8px_0px_0px_rgba(248,200,220,1)] hover:shadow-[4px_4px_0px_0px_rgba(248,200,220,1)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all duration-200 z-20 flex items-center gap-3 overflow-hidden animate-gentle-pulse disabled:opacity-70 disabled:cursor-wait"
                 >
-                    <span className="relative z-10">{isTransitioning ? "PROCESSING..." : "ACCEPT MISSION"}</span>
+                    <span className="relative z-10">{isTransitioning ? "PROCESSING..." : "HELL YESSS"}</span>
                     <span className="text-2xl animate-bob">💍</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                 </button>
@@ -216,16 +209,17 @@ export const Stage3Proposal: React.FC<Stage3Props> = ({ onYes }) => {
                 <div 
                     style={{ 
                         transform: `translate(${noBtnPos.x}px, ${noBtnPos.y}px)`,
-                        transition: 'transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1)' // Faster, smoother spring-like feel
+                        // Smoother transition
+                        transition: 'transform 0.2s ease-out' 
                     }}
                     className="inline-block z-10"
                 >
                     <button
                         ref={noBtnRef}
                         onClick={handleNoClick}
-                        className="px-6 py-3 text-sm font-bold font-mono text-gray-400 bg-gray-100 rounded-lg border border-gray-200 hover:bg-red-50 hover:text-red-400 transition-colors whitespace-nowrap cursor-not-allowed"
+                        className="px-8 py-4 text-lg font-bold font-mono text-white bg-slate-700 rounded-full border-2 border-slate-600 shadow-xl hover:bg-rose-600 hover:border-rose-500 transition-colors whitespace-nowrap"
                     >
-                        {hoverCount > 5 ? "Seriously?" : "Decline"}
+                        {hoverCount > 5 ? "HUHHHH" : "NO THANKS"}
                     </button>
                 </div>
             </div>
@@ -238,8 +232,8 @@ export const Stage3Proposal: React.FC<Stage3Props> = ({ onYes }) => {
               <div className="bg-red-500 text-white px-6 py-3 rounded shadow-xl border-2 border-white flex items-center gap-3">
                   <span className="text-2xl">🚫</span>
                   <div>
-                    <p className="font-bold font-mono">ERROR 404</p>
-                    <p className="text-sm">Option 'No' has been disabled by the administration.</p>
+                    <p className="font-bold font-mono">ERROR 69</p>
+                    <p className="text-sm">Option 'No' does not exist anymore. Try next year</p>
                   </div>
               </div>
           </div>

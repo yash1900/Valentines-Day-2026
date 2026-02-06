@@ -6,8 +6,6 @@ interface Stage2Props {
 }
 
 // --- SPRITE CONFIGURATION ---
-// UPDATED: Using absolute paths ('/assets/...') which is safer for web servers.
-// Check your browser console if images fail to load.
 const SPRITE_URLS = {
     PLAYER: '/assets/romcom_avatar_pixel.png',   
     VAN: '/assets/pakdo_van_pixel.png',         
@@ -27,10 +25,10 @@ const GOAL_DISTANCE = 5000;
 
 // Story Beats
 const STORY_BEATS = [
-    { dist: 500, msg: "THEY'RE CHASING YOU! RUN!" },
-    { dist: 1500, msg: "Auntie: 'Beta, just one photo!'" },
-    { dist: 3000, msg: "Is that a Sabyasachi sale? NO, FOCUS!" },
-    { dist: 4500, msg: "Almost at the airport! Don't stop!" }
+    { dist: 500, msg: "Fuck! My heels and locker keys!!" },
+    { dist: 1500, msg: "I hope Pizzi will handle everything" },
+    { dist: 3000, msg: "Eeji nhi hai mohini ka dance." },
+    { dist: 4500, msg: "I am just a BABY!" }
 ];
 
 export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
@@ -41,7 +39,11 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
   const [gameStatus, setGameStatus] = useState<'START' | 'PLAYING' | 'GAMEOVER' | 'VICTORY_RUN' | 'LEVEL_COMPLETE'>('START');
   const gameStatusRef = useRef<'START' | 'PLAYING' | 'GAMEOVER' | 'VICTORY_RUN' | 'LEVEL_COMPLETE'>('START');
   
+  // Message System Refs
   const [message, setMessage] = useState<string | null>(null);
+  const messageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const messagePriorityRef = useRef<number>(0); // 0: None, 1: Low (Powerup), 2: Medium (Story), 3: High (Hit)
+
   const requestRef = useRef<number>(0);
   
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -167,6 +169,28 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
       gameStatusRef.current = status;
   };
 
+  // Message Logic with Priorities
+  const showMessage = useCallback((text: string, duration: number, priority: number) => {
+      // If a higher priority message is currently showing, ignore this new one
+      if (messagePriorityRef.current > priority) {
+          return;
+      }
+
+      // Clear existing timer to prevent premature clearing
+      if (messageTimerRef.current) {
+          clearTimeout(messageTimerRef.current);
+      }
+
+      setMessage(text);
+      messagePriorityRef.current = priority;
+
+      messageTimerRef.current = setTimeout(() => {
+          setMessage(null);
+          messagePriorityRef.current = 0; // Reset priority when message clears
+          messageTimerRef.current = null;
+      }, duration);
+  }, []);
+
   const startGame = () => {
       updateGameStatus('PLAYING');
       gameState.current = {
@@ -184,6 +208,10 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
         storyIndex: 0
       };
       setScore(0);
+      
+      // Reset Messages
+      if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+      messagePriorityRef.current = 0;
       setMessage(null);
   };
 
@@ -208,7 +236,10 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+    };
   }, [handleKeyDown]);
 
   // --- DRAWING FUNCTIONS ---
@@ -324,12 +355,12 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 30px Courier New';
       ctx.textAlign = 'center';
-      ctx.fillText("STAGE 2: THE CHASE", GAME_WIDTH/2, GAME_HEIGHT/2 - 40);
+      ctx.fillText("VIDEO CALL WITH MOM", GAME_WIDTH/2, GAME_HEIGHT/2 - 40);
       
       ctx.font = '16px Courier New';
       ctx.fillText("Press SPACE to Jump", GAME_WIDTH/2, GAME_HEIGHT/2);
       ctx.fillText("Collect Biryani/Coffee to Speed Up", GAME_WIDTH/2, GAME_HEIGHT/2 + 25);
-      ctx.fillText("Avoid Bears/Vodka or the Van will catch you!", GAME_WIDTH/2, GAME_HEIGHT/2 + 50);
+      ctx.fillText("Avoid Bears/Vodka or kidnappers will catch you!", GAME_WIDTH/2, GAME_HEIGHT/2 + 50);
       
       ctx.fillStyle = '#f1c40f';
       ctx.font = 'bold 20px Courier New';
@@ -491,9 +522,9 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 30px Courier New';
         ctx.textAlign = 'center';
-        ctx.fillText("CAUGHT BY THE AUNTIES!", GAME_WIDTH/2, GAME_HEIGHT/2 - 20);
+        ctx.fillText("KIDNAPPED & CAUGHT BY MOM", GAME_WIDTH/2, GAME_HEIGHT/2 - 20);
         ctx.font = '20px Courier New';
-        ctx.fillText("Press SPACE to try again", GAME_WIDTH/2, GAME_HEIGHT/2 + 30);
+        ctx.fillText("I don't know which is worse. Press SPACE.", GAME_WIDTH/2, GAME_HEIGHT/2 + 30);
         requestRef.current = requestAnimationFrame(gameLoop);
         return;
     }
@@ -654,8 +685,8 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
         // Story Beats
         if (state.storyIndex < STORY_BEATS.length) {
             if (state.distance > STORY_BEATS[state.storyIndex].dist) {
-                setMessage(STORY_BEATS[state.storyIndex].msg);
-                setTimeout(() => setMessage(null), 3000);
+                // Priority 2: Story (3 seconds)
+                showMessage(STORY_BEATS[state.storyIndex].msg, 3000, 2);
                 state.storyIndex++;
             }
         }
@@ -712,8 +743,8 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
         obs.hit = true;
         playSound('hit');
         state.obstacles.splice(i, 1);
-        setMessage("TRIPPED! THEY'RE GETTING CLOSER!");
-        setTimeout(() => setMessage(null), 1000);
+        // Priority 3: Hit/Critical (1.5 seconds)
+        showMessage("TRIPPED! THEY'RE GETTING CLOSER!", 1500, 3);
       }
       if (obs.x + obs.width < -100) state.obstacles.splice(i, 1);
     }
@@ -733,9 +764,9 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
         pup.collected = true;
         playSound('collect');
         state.powerups.splice(i, 1);
-        const msgs = ["ENERGY BOOST!", "YUM!", "SPEED UP!"];
-        setMessage(msgs[Math.floor(Math.random()*msgs.length)]);
-        setTimeout(() => setMessage(null), 1000);
+        const msgs = ["TASTYY!", "YUMMYY!"];
+        // Priority 1: Ambient/Powerup (1 second) - Will NOT interrupt story
+        showMessage(msgs[Math.floor(Math.random()*msgs.length)], 1000, 1);
       }
       if (pup.x + pup.width < -100) state.powerups.splice(i, 1);
     }
@@ -757,31 +788,68 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
     // Bubble (Only if playing)
     if (currentStatus === 'PLAYING') {
         const distToPlayer = state.player.x - (state.van.x + state.van.width);
-        if (distToPlayer < 300) {
-            ctx.save();
-            const bubbleX = state.van.x + 40;
-            const bubbleY = GAME_HEIGHT - 130;
-            ctx.fillStyle = 'white';
-            ctx.fillRect(bubbleX, bubbleY, 150, 35);
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = 'black';
-            ctx.strokeRect(bubbleX, bubbleY, 150, 35);
-            ctx.fillStyle = 'black';
-            ctx.font = 'bold 12px Courier New';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            
-            let bubbleText = "";
-            if (distToPlayer < 150) {
-                bubbleText = (Math.floor(state.frames / 10) % 2 === 0) ? "PAKDO! PAKDO!" : "Pakdo! Pakdo!";
-            } else {
-                const threats = ["STOP THE CAR!", "WE HAVE SNACKS!", "LOOK AT HIS SALARY!", "Pakdo! Pakdo!"];
-                const threatIdx = Math.floor(state.frames / 60) % threats.length;
-                bubbleText = threats[threatIdx];
+        
+        // Show when van is relatively close (within 400px)
+        if (distToPlayer < 400) {
+            // Blink effect: Faster blinking as it gets closer
+            const blinkSpeed = distToPlayer < 150 ? 10 : 30; // Frames per toggle
+            const showBubble = Math.floor(state.frames / blinkSpeed) % 2 === 0;
+
+            if (showBubble) {
+                ctx.save();
+                
+                // Position bubble above the van
+                const bubbleW = 140;
+                const bubbleH = 40;
+                const bubbleX = state.van.x + state.van.width / 2; 
+                const bubbleY = GAME_HEIGHT - 50 - state.van.height - 30; // Above van
+
+                // Draw Speech Bubble Shape
+                ctx.beginPath();
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = '#2d3436';
+                ctx.lineWidth = 3;
+                
+                // Draw rounded rectangle with pointer at bottom
+                const r = 10; // radius
+                const x = bubbleX - bubbleW / 2;
+                const y = bubbleY - bubbleH / 2;
+                const w = bubbleW;
+                const h = bubbleH;
+
+                ctx.moveTo(x + r, y);
+                ctx.lineTo(x + w - r, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                ctx.lineTo(x + w, y + h - r);
+                ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                // Pointer
+                ctx.lineTo(x + w / 2 + 10, y + h);
+                ctx.lineTo(x + w / 2, y + h + 15); // Point tip
+                ctx.lineTo(x + w / 2 - 10, y + h);
+                
+                ctx.lineTo(x + r, y + h);
+                ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                ctx.lineTo(x, y + r);
+                ctx.quadraticCurveTo(x, y, x + r, y);
+                
+                ctx.fill();
+                ctx.stroke();
+
+                // Text styling
+                ctx.fillStyle = '#d63031'; // Urgent Red
+                ctx.font = 'bold 14px "Courier New"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Dynamic Text based on closeness
+                let text = "PAKDO! PAKDO!";
+                if (distToPlayer > 250) {
+                   text = "STOP HER!"; 
+                }
+                
+                ctx.fillText(text, bubbleX, bubbleY);
+                ctx.restore();
             }
-            
-            ctx.fillText(bubbleText, bubbleX + 75, bubbleY + 17.5);
-            ctx.restore();
         }
     }
 
@@ -813,7 +881,7 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
     ctx.strokeRect(20, 40, 200, 10);
 
     ctx.font = '12px Courier New';
-    ctx.fillText("AIRPORT", 180, 65);
+    ctx.fillText("KINGS", 180, 65);
 
     requestRef.current = requestAnimationFrame(gameLoop);
   };
@@ -847,16 +915,16 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
             {gameStatus === 'LEVEL_COMPLETE' && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded">
                     <div className="bg-white p-8 rounded-lg border-4 border-pastel-mint shadow-2xl max-w-md text-center animate-fade-in">
-                        <div className="text-4xl mb-4">✈️ 🌍</div>
-                        <h2 className="text-2xl font-black text-gray-800 mb-2 font-mono">SAFE HOUSE REACHED</h2>
+                        <div className="text-4xl mb-4">🏠 💖</div>
+                        <h2 className="text-2xl font-black text-gray-800 mb-2 font-mono">REACHED KINGS APARTMENT</h2>
                         <p className="text-gray-600 mb-6 font-mono text-sm">
-                            You've outrun the Aunties and made it to the airport. The flight to "The Proposal" is boarding now.
+                            You've made it on time for the video call. Your relationship was SAVED.
                         </p>
                         <button 
                             onClick={onComplete}
                             className="w-full py-4 bg-pastel-dark text-white font-bold font-mono rounded hover:bg-black transition-colors"
                         >
-                            BOARD FLIGHT &rarr;
+                            KISS SITCOM &rarr;
                         </button>
                     </div>
                 </div>
@@ -864,7 +932,7 @@ export const Stage2Game: React.FC<Stage2Props> = ({ onComplete }) => {
 
             <div className="mt-4 flex justify-between text-sm font-mono text-gray-700 font-bold">
                 <span>KEYS: SPACE / UP to Jump</span>
-                <span>DESTINATION: {GOAL_DISTANCE}m</span>
+                <span>DISTANCE: {GOAL_DISTANCE}m</span>
             </div>
         </GlassCard>
     </div>
